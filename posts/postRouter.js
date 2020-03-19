@@ -4,7 +4,7 @@ const router = express.Router();
 
 router.get('/', (req, res) => {
   // do your magic!
-  Posts.find()
+  Posts.get()
     .then(post => {
         res.status(200).json({post})
     })
@@ -13,22 +13,12 @@ router.get('/', (req, res) => {
     })
 });
 
-router.get('/:id', async (req, res) => {
+router.get('/:id', validatePostId, (req, res) => {
   // do your magic!
-  const {id} = req.params
-  console.log(res.body)
-  try{
-  const post = await Posts.findById(id)
-  console.log(post.length)
-      if(post.length < 1){ 
-          res.status(404).json({message: "The post with the specified ID does not exist."})
-      }else{ res.status(200).json({post})}
-  }catch(err){
-          res.status(500).json({error: "The post information could not be retrieved."})
-      }
+  res.status(200).json(req.post);
 });
 
-router.delete('/:id', (req, res) => {
+router.delete('/:id', validatePostId, (req, res) => {
   // do your magic!
   const {id} = req.params;
   Posts.remove(id)
@@ -43,19 +33,17 @@ router.delete('/:id', (req, res) => {
       })
 });
 
-router.put('/:id', (req, res) => {
+router.put('/:id', validatePostId, (req, res) => {
   // do your magic!
   const changes = req.body;
   const {id} = req.params
   Posts.update(id, changes)
       .then(post => {
-          if (!changes.title || !changes.contents) {
-              res.status(400).json({errorMessage: "Please provide title and contents for the post."})
-          }
-          else if (post) {
-              res.status(200).json(changes);
+        console.log(!changes.text)
+          if (!changes.text) {
+              res.status(400).json({errorMessage: "Please provide text for the post."})
           } else {
-              res.status(404).json({  message: "The post with the specified ID does not exist." });
+              res.status(200).json(changes);
           }
       })
       .catch(err => {
@@ -68,9 +56,19 @@ router.put('/:id', (req, res) => {
 
 // custom middleware
 
-function validatePostId(req, res, next) {
+async function validatePostId(req, res, next) {
   // do your magic!
-
+  const {id} = req.params
+  try{
+  const post = await Posts.getById(id)
+      if(post){ 
+          req.post = post;
+          next();
+      }else{ 
+        res.status(404).json({message: "invalid user id"})}
+  }catch(err){
+          res.status(500).json({error: "The post information could not be retrieved."})
+      }
 }
 
 module.exports = router;
